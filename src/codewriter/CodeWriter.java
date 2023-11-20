@@ -16,7 +16,18 @@ public class CodeWriter {
     }
 
     public void writeArithmetic(String command) {
+        writeLine("@SP");
+        writeLine("AM=M-1");
+        writeLine("D=M");
+        writeLine("A=A-1");
 
+        if (command.equals("add")) {
+            writeLine("M=M+D");
+        } else if (command.equals("sub")) {
+            writeLine("M=M-D");
+        } else {
+            throw new IllegalArgumentException("Unsupported arithmetic command: " + command);
+        }
     }
 
     public void writePush(String segment, int index) {
