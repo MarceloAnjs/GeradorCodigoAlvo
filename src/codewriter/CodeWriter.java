@@ -3,12 +3,24 @@ package codewriter;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class CodeWriter {
     private BufferedWriter writer;
     private static final Set<String> VALID_SEGMENTS = new HashSet<>();
+    private static final Map<String, String> SEGMENT_MAP = new HashMap<>();
+
+    static {
+        SEGMENT_MAP.put("local", "LCL");
+        SEGMENT_MAP.put("argument", "ARG");
+        SEGMENT_MAP.put("this", "THIS");
+        SEGMENT_MAP.put("that", "THAT");
+        SEGMENT_MAP.put("temp", "5");
+        SEGMENT_MAP.put("pointer", "3");
+    }
 
     static {
         VALID_SEGMENTS.add("local");
