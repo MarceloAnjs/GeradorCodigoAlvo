@@ -10,6 +10,17 @@ public class CodeWriter {
     private BufferedWriter writer;
     private static final Set<String> VALID_SEGMENTS = new HashSet<>();
 
+    static {
+        VALID_SEGMENTS.add("local");
+        VALID_SEGMENTS.add("constant");
+        VALID_SEGMENTS.add("temp");
+        VALID_SEGMENTS.add("this");
+        VALID_SEGMENTS.add("that");
+        VALID_SEGMENTS.add("static");
+        VALID_SEGMENTS.add("pointer");
+        VALID_SEGMENTS.add("argument");
+    }
+
     public CodeWriter(String outputFileName) {
         try {
             writer = new BufferedWriter(new FileWriter(outputFileName));
