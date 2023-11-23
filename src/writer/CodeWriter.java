@@ -1,4 +1,4 @@
-package codewriter;
+package writer;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -54,6 +54,67 @@ public class CodeWriter {
         } else {
             throw new IllegalArgumentException("Unsupported arithmetic command: " + command);
         }
+    }
+
+    public void writeEquality() {
+        writeComparison("JEQ");
+    }
+
+    public void writeLessThan() {
+        writeComparison("JLT");
+    }
+
+    public void writeGreaterThan() {
+        writeComparison("JGT");
+    }
+
+    public void writeAnd() {
+        writeLine(" @SP");
+        writeLine(" AM=M-1");
+        writeLine(" D=M");
+        writeLine(" A=A-1");
+        writeLine(" M=M&D");
+    }
+
+    public void writeOr() {
+        writeLine(" @SP");
+        writeLine(" AM=M-1");
+        writeLine(" D=M");
+        writeLine(" A=A-1");
+        writeLine(" M=M|D");
+    }
+
+    public void writeNot() {
+        writeLine(" @SP");
+        writeLine(" A=M-1");
+        writeLine(" M=!M");
+    }
+
+    private void writeComparison(String jumpType) {
+        int jumpIndex = getJumpIndex();
+        writeLine(" @SP");
+        writeLine(" AM=M-1");
+        writeLine(" D=M");
+        writeLine(" A=A-1");
+        writeLine(" D=M-D");
+        writeLine(" @TRUE" + jumpIndex);
+        writeLine(" D;" + jumpType);
+        writeLine(" @SP");
+        writeLine(" A=M-1");
+        writeLine(" M=0");
+        writeLine(" @CONTINUE" + jumpIndex);
+        writeLine(" 0;JMP");
+        writeLine("(TRUE" + jumpIndex + ")");
+        writeLine(" @SP");
+        writeLine(" A=M-1");
+        writeLine(" M=-1");
+        writeLine("(CONTINUE" + jumpIndex + ")");
+    }
+
+    private int jumpIndex = 0;
+
+    private int getJumpIndex() {
+        return jumpIndex++;
     }
 
     public void writePush(String segment, int index) {
@@ -239,7 +300,6 @@ public class CodeWriter {
             writeLine("A=M");
             writeLine("M=D");
         }
-
     }
 
     private boolean isValidSegment(String segment) {

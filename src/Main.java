@@ -1,6 +1,6 @@
 import java.io.File;
 
-import codewriter.CodeWriter;
+import writer.CodeWriter;
 import parser.Parser;
 
 public class Main {
@@ -34,6 +34,18 @@ public class Main {
                 codeWriter.writePop(command[1], Integer.parseInt(command[2]));
             } else if (commandType.equals("add") || commandType.equals("sub")) {
                 codeWriter.writeArithmetic(commandType);
+            } else if (commandType.equals("eq")) {
+                codeWriter.writeEquality();
+            } else if (commandType.equals("lt")) {
+                codeWriter.writeLessThan();
+            } else if (commandType.equals("gt")) {
+                codeWriter.writeGreaterThan();
+            } else if (commandType.equals("and")) {
+                codeWriter.writeAnd();
+            } else if (commandType.equals("or")) {
+                codeWriter.writeOr();
+            } else if (commandType.equals("not")) {
+                codeWriter.writeNot();
             }
         }
 
