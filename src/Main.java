@@ -1,54 +1,96 @@
 import java.io.File;
+import java.util.ArrayList;
 
 import writer.CodeWriter;
 import parser.Parser;
 
 public class Main {
+
+    private static CodeWriter codeWriter;
+    private static Parser parser;
+    private static Boolean hasSys = false;
+
+    public static ArrayList<String> getVMFiles(String file) {
+        File dir = new File(file);
+        File[] files = dir.listFiles();
+        String outputFile;
+        ArrayList<String> vmFiles = new ArrayList<String>();
+
+        if (dir.isFile()) {
+            String path = dir.getAbsolutePath();
+            if (!path.endsWith(".vm")) {
+                throw new IllegalArgumentException(".vm file is required!");
+            }
+            vmFiles.add(file);
+            outputFile = dir.getAbsolutePath().substring(0, dir.getAbsolutePath().lastIndexOf(".")) + ".asm";
+            codeWriter = new CodeWriter(outputFile);
+        } else if (dir.isDirectory()) {
+            for (File f : files) {
+                if (f.getName().equals("Sys.vm"))
+                    hasSys = true;
+                if (f.getName().endsWith(".vm")) {
+                    vmFiles.add(file + "/" + f.getName());
+                }
+            }
+            if (vmFiles.size() == 0) {
+                throw new IllegalArgumentException("No vm file in this directory");
+            }
+            outputFile = file + "/" + file.substring(file.lastIndexOf("/") + 1) + ".asm";
+            codeWriter = new CodeWriter(outputFile);
+        }
+        return vmFiles;
+    }
+
     public static void main(String[] args) {
 
         if (args.length != 1) {
-            System.err.println("Uso: java Main <arquivo VM>");
-            System.exit(1);
+            System.err.println("Usage:java Main [filename|directory]");
+            return;
         }
 
-        String inputFileName = args[0];
+        ArrayList<String> vmFiles = getVMFiles(args[0].replace('\\', '/'));
 
-        File inputFile = new File(inputFileName);
-        if (!inputFile.exists()) {
-            System.err.println("Erro: O arquivo de entrada não existe.");
-            System.exit(1);
-        }
+        if (hasSys)
+            codeWriter.writeInit();
 
-        String outputFileName = inputFileName.replace(".vm", ".asm");
+        for (String file : vmFiles) {
+            codeWriter.setFileName(file);
+            parser = new Parser(file);
+            while (parser.hasMoreCommands()) {
+                parser.advance();
 
-        Parser p = new Parser(inputFileName);
-        CodeWriter codeWriter = new CodeWriter(outputFileName);
-
-        while (p.hasMoreCommands()) {
-            String[] command = p.command();
-            String commandType = command[0];
-
-            if (commandType.equals("push")) {
-                codeWriter.writePush(command[1], Integer.parseInt(command[2]));
-            } else if (commandType.equals("pop")) {
-                codeWriter.writePop(command[1], Integer.parseInt(command[2]));
-            } else if (commandType.equals("add") || commandType.equals("sub")) {
-                codeWriter.writeArithmetic(commandType);
-            } else if (commandType.equals("eq")) {
-                codeWriter.writeEquality();
-            } else if (commandType.equals("lt")) {
-                codeWriter.writeLessThan();
-            } else if (commandType.equals("gt")) {
-                codeWriter.writeGreaterThan();
-            } else if (commandType.equals("and")) {
-                codeWriter.writeAnd();
-            } else if (commandType.equals("or")) {
-                codeWriter.writeOr();
-            } else if (commandType.equals("not")) {
-                codeWriter.writeNot();
+                switch (parser.commandType()) {
+                    case "C_ARITHMETIC":
+                        codeWriter.WriteArithmetic(parser.arg1());
+                        break;
+                    case "C_PUSH":
+                    case "C_POP":
+                        codeWriter.WritePushPop(parser.commandType(), parser.arg1(), parser.arg2());
+                        break;
+                    case "C_IF":
+                        codeWriter.writeIf(parser.arg1());
+                        break;
+                    case "C_GOTO":
+                        codeWriter.writeGoto(parser.arg1());
+                        break;
+                    case "C_LABEL":
+                        codeWriter.writeLabel(parser.arg1());
+                        break;
+                    case "C_FUNCTION":
+                        codeWriter.writeFunction(parser.arg1(), parser.arg2());
+                        break;
+                    case "C_CALL":
+                        codeWriter.writeCall(parser.arg1(), parser.arg2());
+                        break;
+                    case "C_RETURN":
+                        codeWriter.writeReturn();
+                        break;
+                    default:
+                        break;
+                }
             }
         }
-
+        
         codeWriter.close();
     }
 }
