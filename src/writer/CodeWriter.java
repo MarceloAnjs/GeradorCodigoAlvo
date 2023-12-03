@@ -231,6 +231,12 @@ public class CodeWriter {
         writeTofile(commandString);
     }
 
+    public void writeGoto(String label) {
+        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
+        String commandString = "@" + (func + label).toUpperCase() + "\r\n0;JMP\r\n";
+        writeTofile(commandString);
+    }
+
     public void close() {
         try {
             writer.close();
