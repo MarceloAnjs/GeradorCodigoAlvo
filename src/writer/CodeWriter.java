@@ -1,6 +1,5 @@
 package writer;
 
-import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
@@ -9,7 +8,6 @@ import java.util.Map;
 public class CodeWriter {
     private String fileName;
     private String funcName;
-
     private FileWriter fileWriter;
     private Integer counter = 0;
     private Map<String, String> segments;
@@ -62,7 +60,8 @@ public class CodeWriter {
         writeTofile(string);
         functionName = functionName.replace(".vm", String.valueOf(counter++));
         writeTofile("//goto\n");
-
+        writeGoto(functionName);
+        writeLabel(returnLabel);
     }
 
     public CodeWriter(String filePath) {
