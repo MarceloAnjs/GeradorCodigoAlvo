@@ -80,19 +80,59 @@ public class CodeWriter {
         }
     }
 
-    public void writeArithmetic(String command) {
-        writeLine("@SP");
-        writeLine("AM=M-1");
-        writeLine("D=M");
-        writeLine("A=A-1");
+    private String binaryArithmetic1(String operation) {
+        return "@SP\r\nAM=M-1\r\nD=M\r\n@SP\r\nA=M-1\r\nM=M" + operation + "D\r\n";
+    }
 
-        if (command.equals("add")) {
-            writeLine("M=M+D");
-        } else if (command.equals("sub")) {
-            writeLine("M=M-D");
-        } else {
-            throw new IllegalArgumentException("Unsupported arithmetic command: " + command);
+    private String binaryArithmetic2(String operation) {
+        return "@SP\r\nAM=M-1\r\nD=M\r\n@SP\r\nA=M-1\r\nM=D" + operation + "M\r\n";
+    }
+
+    private String unaryArithmetic(String operation) {
+        return "@SP\r\nA=M-1\r\nM=" + operation + "M\r\n";
+    }
+
+    private String compareArithmetic(String comp) {
+        return "@SP\r\nAM=M-1\r\nD=M\r\n@SP\r\nAM=M-1\r\nD=M-D\r\n@IS_GT_OR_LT_" + counter + "\r\nD;"
+                + comp + "\r\n@SP\r\nA=M\r\nM=0\r\n@FINISH_" + counter + "\r\n0;JMP\r\n(IS_GT_OR_LT_" + counter
+                + ")\r\n@SP\r\n" +
+                "A=M\r\nM=-1\r\n(FINISH_" + counter++ + ")\r\n@SP\r\nM=M+1\r\n";
+    }
+
+    public void WriteArithmetic(String command) {
+        String commandString;
+        switch (command) {
+            case "sub":
+                commandString = binaryArithmetic1("-");
+                break;
+            case "add":
+                commandString = binaryArithmetic2("+");
+                break;
+            case "neg":
+                commandString = unaryArithmetic("-");
+                break;
+            case "eq":
+                commandString = compareArithmetic("JEQ");
+                break;
+            case "gt":
+                commandString = compareArithmetic("JGT");
+                break;
+            case "lt":
+                commandString = compareArithmetic("JLT");
+                break;
+            case "and":
+                commandString = binaryArithmetic2("&");
+                break;
+            case "or":
+                commandString = binaryArithmetic2("|");
+                break;
+            case "not":
+                commandString = unaryArithmetic("!");
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + command);
         }
+        writeTofile(commandString);
     }
 
     public void writeEquality() {
