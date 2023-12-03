@@ -4,37 +4,14 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class CodeWriter {
     private String fileName;
     private BufferedWriter writer;
     private FileWriter fileWriter;
     private Integer counter = 0;
-    private static final Set<String> VALID_SEGMENTS = new HashSet<>();
-    private static final Map<String, String> SEGMENT_MAP = new HashMap<>();
-
-    static {
-        SEGMENT_MAP.put("local", "LCL");
-        SEGMENT_MAP.put("argument", "ARG");
-        SEGMENT_MAP.put("this", "THIS");
-        SEGMENT_MAP.put("that", "THAT");
-        SEGMENT_MAP.put("temp", "5");
-        SEGMENT_MAP.put("pointer", "3");
-    }
-
-    static {
-        VALID_SEGMENTS.add("local");
-        VALID_SEGMENTS.add("constant");
-        VALID_SEGMENTS.add("temp");
-        VALID_SEGMENTS.add("this");
-        VALID_SEGMENTS.add("that");
-        VALID_SEGMENTS.add("static");
-        VALID_SEGMENTS.add("pointer");
-        VALID_SEGMENTS.add("argument");
-    }
+    private Map<String, String> segments;
 
     public void setFileName(String fileName) {
         String tempFilePath = fileName.replace("\\", "/");
@@ -72,11 +49,21 @@ public class CodeWriter {
 
     }
 
-    public CodeWriter(String outputFileName) {
+    public CodeWriter(String filePath) {
+
+        segments = new HashMap<>(6);
+        segments.put("local", "LCL");
+        segments.put("argument", "ARG");
+        segments.put("this", "THIS");
+        segments.put("that", "THAT");
+        segments.put("temp", "5");
+        segments.put("pointer", "3");
+
+        setFileName(filePath);
         try {
-            writer = new BufferedWriter(new FileWriter(outputFileName));
-        } catch (IOException e) {
-            e.printStackTrace();
+            fileWriter = new FileWriter(filePath);
+        } catch (Exception e) {
+            System.out.println(e);
         }
     }
 
@@ -196,193 +183,36 @@ public class CodeWriter {
         return jumpIndex++;
     }
 
-    public void writePush(String segment, int index) {
-        if (!isValidSegment(segment)) {
-            throw new IllegalArgumentException("Unsupported pop segment: " + segment);
+    private String push(String segment, String index) {
+        String commandString = "@" + index + "\r\nD=A";
+        if (segment.equals("static"))
+            commandString = "@" + fileName.replace("vm", index) + "\r\nD=M";
+        if (!segment.equals("constant") && !segment.equals("static")) {
+            commandString += "\r\n@" + segments.get(segment) + "\r\nA=D+";
+            commandString += (segment.equals("temp") || segment.equals("pointer")) ? "A\r\nD=M" : "M\r\nD=M";
         }
-        if (segment.equals("constant")) {
-            writeLine("@" + index);
-            writeLine("D=A");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("local")) {
-            writeLine("@LCL");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("A=D+A");
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("argument")) {
-            writeLine("@ARG");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("A=D+A");
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("this")) {
-            writeLine("@THIS");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("A=D+A");
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("that")) {
-            writeLine("@THAT");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("A=D+A");
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("temp")) {
-            writeLine("@5");
-            writeLine("D=A");
-            writeLine("@" + index);
-            writeLine("A=D+A");
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("pointer")) {
-            writeLine("@3");
-            writeLine("D=A");
-            writeLine("@" + index);
-            writeLine("A=D+A");
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        } else if (segment.equals("static")) {
-            writeLine("@" + index);
-            writeLine("D=M");
-            writeLine("@SP");
-            writeLine("A=M");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("M=M+1");
-        }
+        commandString += "\r\n@SP\r\nA=M\r\nM=D\r\n@SP\r\nM=M+1\r\n";
+        return commandString;
     }
 
-    public void writePop(String segment, int index) {
-        if (!isValidSegment(segment)) {
-            throw new IllegalArgumentException("Unsupported pop segment: " + segment);
-        }
-        if (segment.equals("local")) {
-            writeLine("@LCL");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("D=D+A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        } else if (segment.equals("argument")) {
-            writeLine("@ARG");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("D=D+A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        } else if (segment.equals("this")) {
-            writeLine("@THIS");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("D=D+A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        } else if (segment.equals("that")) {
-            writeLine("@THAT");
-            writeLine("D=M");
-            writeLine("@" + index);
-            writeLine("D=D+A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        } else if (segment.equals("temp")) {
-            writeLine("@5");
-            writeLine("D=A");
-            writeLine("@" + index);
-            writeLine("D=D+A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        } else if (segment.equals("pointer")) {
-            writeLine("@3");
-            writeLine("D=A");
-            writeLine("@" + index);
-            writeLine("D=D+A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        } else if (segment.equals("static")) {
-            writeLine("@" + index);
-            writeLine("D=A");
-            writeLine("@R13");
-            writeLine("M=D");
-            writeLine("@SP");
-            writeLine("AM=M-1");
-            writeLine("D=M");
-            writeLine("@R13");
-            writeLine("A=M");
-            writeLine("M=D");
-        }
+    private String pop(String segment, String index) {
+        String commandString = "@" + index + "\r\nD=A\r\n@" + segments.get(segment) + "\r\nD=D+";
+        commandString += (segment.equals("local") || segment.equals("argument") ||
+                segment.equals("this") || segment.equals("that")) ? "M" : "A";
+        commandString += "\r\n@R13\r\nM=D\r\n@SP\r\nAM=M-1\r\nD=M\r\n@R13\r\nA=M\r\nM=D\r\n";
+        commandString = !segment.equals("static") ? commandString
+                : "@SP\r\nAM=M-1\r\nD=M\r\n@" + fileName.replace("vm", index) + "\r\nM=D\r\n";
+        return commandString;
     }
 
-    private boolean isValidSegment(String segment) {
-        return VALID_SEGMENTS.contains(segment);
+    public void WritePushPop(String command, String segment, String index) {
+        String commandString;
+        if (command.equals("C_PUSH"))
+            commandString = push(segment, index);
+        else {
+            commandString = pop(segment, index);
+        }
+        writeTofile(commandString);
     }
 
     private void writeLine(String line) {
