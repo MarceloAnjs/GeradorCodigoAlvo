@@ -10,6 +10,8 @@ import java.util.Set;
 
 public class CodeWriter {
     private BufferedWriter writer;
+    private FileWriter fileWriter;
+    private Integer counter = 0;
     private static final Set<String> VALID_SEGMENTS = new HashSet<>();
     private static final Map<String, String> SEGMENT_MAP = new HashMap<>();
 
@@ -31,6 +33,35 @@ public class CodeWriter {
         VALID_SEGMENTS.add("static");
         VALID_SEGMENTS.add("pointer");
         VALID_SEGMENTS.add("argument");
+    }
+
+    private void writeTofile(String commandString) {
+        try {
+            fileWriter.write(commandString);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void writeInit() {
+        String commandString = "@256\r\nD=A\r\n@SP\r\nM=D\r\n";
+        writeTofile(commandString);
+        writeCall("Sys.init", "0");
+    }
+
+    public void writeCall(String functionName, String numArgs) {
+        String returnLabel = functionName + "$ret." + counter++;
+        String string = "//call\n@" + returnLabel.toUpperCase() + "\r\nD=A\r\n@SP\r\nA=M\r\nM=D\r\n@SP\r\nM=M+1\r\n";
+        string += "@LCL\r\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@SP\r\nD=M\r\n@5\r\nD=D-A\r\n@" + numArgs + "\r\nD=D-A\r\n@ARG\r\nM=D\r\n";
+        string += "@SP\r\nD=M\r\n@LCL\r\nM=D\r\n";
+        writeTofile(string);
+        functionName = functionName.replace(".vm", String.valueOf(counter++));
+        writeTofile("//goto\n");
+
     }
 
     public CodeWriter(String outputFileName) {
