@@ -9,7 +9,7 @@ import java.util.Map;
 public class CodeWriter {
     private String fileName;
     private String funcName;
-    private BufferedWriter writer;
+
     private FileWriter fileWriter;
     private Integer counter = 0;
     private Map<String, String> segments;
@@ -183,8 +183,10 @@ public class CodeWriter {
     }
 
     public void close() {
+        String endLoop = "(END)\r\n@END\r\n0;JMP\r\n";
         try {
-            writer.close();
+            fileWriter.write(endLoop);
+            fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
