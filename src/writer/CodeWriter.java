@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class CodeWriter {
+    private String fileName;
     private BufferedWriter writer;
     private FileWriter fileWriter;
     private Integer counter = 0;
@@ -33,6 +34,13 @@ public class CodeWriter {
         VALID_SEGMENTS.add("static");
         VALID_SEGMENTS.add("pointer");
         VALID_SEGMENTS.add("argument");
+    }
+
+    public void setFileName(String fileName) {
+        String tempFilePath = fileName.replace("\\", "/");
+        String[] fileNameTemp = tempFilePath.split("/");
+        fileNameTemp[fileNameTemp.length - 1] = fileNameTemp[fileNameTemp.length - 1].replace(" ", "_");
+        this.fileName = fileNameTemp[fileNameTemp.length - 1];
     }
 
     private void writeTofile(String commandString) {
