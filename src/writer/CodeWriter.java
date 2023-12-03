@@ -29,6 +29,21 @@ public class CodeWriter {
         }
     }
 
+    public void writeLabel(String label) {
+        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
+        writeTofile("(" + (func + label).toUpperCase() + ")\n");
+    }
+
+    public void writeFunction(String functionName, String numVars) {
+        writeLabel(functionName);
+        String commandString = "";
+        int vars = Integer.parseInt(numVars);
+        for (int i = 0; i < vars; i++) {
+            commandString += push("constant", "0");
+        }
+        writeTofile(commandString);
+    }
+
     public void writeInit() {
         String commandString = "@256\r\nD=A\r\n@SP\r\nM=D\r\n";
         writeTofile(commandString);
