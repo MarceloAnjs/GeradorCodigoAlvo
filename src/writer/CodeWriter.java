@@ -12,58 +12,6 @@ public class CodeWriter {
     private Integer counter = 0;
     private Map<String, String> segments;
 
-    public void setFileName(String fileName) {
-        String tempFilePath = fileName.replace("\\", "/");
-        String[] fileNameTemp = tempFilePath.split("/");
-        fileNameTemp[fileNameTemp.length - 1] = fileNameTemp[fileNameTemp.length - 1].replace(" ", "_");
-        this.fileName = fileNameTemp[fileNameTemp.length - 1];
-    }
-
-    private void writeTofile(String commandString) {
-        try {
-            fileWriter.write(commandString);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void writeLabel(String label) {
-        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
-        writeTofile("(" + (func + label).toUpperCase() + ")\n");
-    }
-
-    public void writeFunction(String functionName, String numVars) {
-        writeLabel(functionName);
-        String commandString = "";
-        int vars = Integer.parseInt(numVars);
-        for (int i = 0; i < vars; i++) {
-            commandString += push("constant", "0");
-        }
-        writeTofile(commandString);
-    }
-
-    public void writeInit() {
-        String commandString = "@256\r\nD=A\r\n@SP\r\nM=D\r\n";
-        writeTofile(commandString);
-        writeCall("Sys.init", "0");
-    }
-
-    public void writeCall(String functionName, String numArgs) {
-        String returnLabel = functionName + "$ret." + counter++;
-        String string = "//call\n@" + returnLabel.toUpperCase() + "\r\nD=A\r\n@SP\r\nA=M\r\nM=D\r\n@SP\r\nM=M+1\r\n";
-        string += "@LCL\r\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
-        string += "@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
-        string += "@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
-        string += "@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
-        string += "@SP\r\nD=M\r\n@5\r\nD=D-A\r\n@" + numArgs + "\r\nD=D-A\r\n@ARG\r\nM=D\r\n";
-        string += "@SP\r\nD=M\r\n@LCL\r\nM=D\r\n";
-        writeTofile(string);
-        functionName = functionName.replace(".vm", String.valueOf(counter++));
-        writeTofile("//goto\n");
-        writeGoto(functionName);
-        writeLabel(returnLabel);
-    }
-
     public CodeWriter(String filePath) {
         this.funcName = null;
         segments = new HashMap<>(6);
@@ -82,16 +30,31 @@ public class CodeWriter {
         }
     }
 
+    private void writeTofile(String commandString) {
+        try {
+            fileWriter.write(commandString);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setFileName(String fileName) {
+        String tempFilePath = fileName.replace("\\", "/");
+        String[] fileNameTemp = tempFilePath.split("/");
+        fileNameTemp[fileNameTemp.length - 1] = fileNameTemp[fileNameTemp.length - 1].replace(" ", "_");
+        this.fileName = fileNameTemp[fileNameTemp.length - 1];
+    }
+
+    private String unaryArithmetic(String operation) {
+        return "@SP\r\nA=M-1\r\nM=" + operation + "M\r\n";
+    }
+
     private String binaryArithmetic1(String operation) {
         return "@SP\r\nAM=M-1\r\nD=M\r\n@SP\r\nA=M-1\r\nM=M" + operation + "D\r\n";
     }
 
     private String binaryArithmetic2(String operation) {
         return "@SP\r\nAM=M-1\r\nD=M\r\n@SP\r\nA=M-1\r\nM=D" + operation + "M\r\n";
-    }
-
-    private String unaryArithmetic(String operation) {
-        return "@SP\r\nA=M-1\r\nM=" + operation + "M\r\n";
     }
 
     private String compareArithmetic(String comp) {
@@ -169,18 +132,6 @@ public class CodeWriter {
         writeTofile(commandString);
     }
 
-    public void writeIf(String label) {
-        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
-        String commandString = "@SP\r\nAM=M-1\r\nD=M\r\n@" + (func + label).toUpperCase() + "\r\nD;JNE\r\n";
-        writeTofile(commandString);
-    }
-
-    public void writeGoto(String label) {
-        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
-        String commandString = "@" + (func + label).toUpperCase() + "\r\n0;JMP\r\n";
-        writeTofile(commandString);
-    }
-
     public void close() {
         String endLoop = "(END)\r\n@END\r\n0;JMP\r\n";
         try {
@@ -189,6 +140,55 @@ public class CodeWriter {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void writeLabel(String label) {
+        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
+        writeTofile("(" + (func + label).toUpperCase() + ")\n");
+    }
+
+    public void writeInit() {
+        String commandString = "@256\r\nD=A\r\n@SP\r\nM=D\r\n";
+        writeTofile(commandString);
+        writeCall("Sys.init", "0");
+    }
+
+    public void writeGoto(String label) {
+        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
+        String commandString = "@" + (func + label).toUpperCase() + "\r\n0;JMP\r\n";
+        writeTofile(commandString);
+    }
+
+    public void writeIf(String label) {
+        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
+        String commandString = "@SP\r\nAM=M-1\r\nD=M\r\n@" + (func + label).toUpperCase() + "\r\nD;JNE\r\n";
+        writeTofile(commandString);
+    }
+
+    public void writeFunction(String functionName, String numVars) {
+        writeLabel(functionName);
+        String commandString = "";
+        int vars = Integer.parseInt(numVars);
+        for (int i = 0; i < vars; i++) {
+            commandString += push("constant", "0");
+        }
+        writeTofile(commandString);
+    }
+
+    public void writeCall(String functionName, String numArgs) {
+        String returnLabel = functionName + "$ret." + counter++;
+        String string = "//call\n@" + returnLabel.toUpperCase() + "\r\nD=A\r\n@SP\r\nA=M\r\nM=D\r\n@SP\r\nM=M+1\r\n";
+        string += "@LCL\r\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\r\nM=M+1\r\n";
+        string += "@SP\r\nD=M\r\n@5\r\nD=D-A\r\n@" + numArgs + "\r\nD=D-A\r\n@ARG\r\nM=D\r\n";
+        string += "@SP\r\nD=M\r\n@LCL\r\nM=D\r\n";
+        writeTofile(string);
+        functionName = functionName.replace(".vm", String.valueOf(counter++));
+        writeTofile("//goto\n");
+        writeGoto(functionName);
+        writeLabel(returnLabel);
     }
 
     private String restoreSegmentPointers(int index, String segment) {
