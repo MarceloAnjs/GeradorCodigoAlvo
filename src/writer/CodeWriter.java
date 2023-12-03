@@ -8,6 +8,7 @@ import java.util.Map;
 
 public class CodeWriter {
     private String fileName;
+    private String funcName;
     private BufferedWriter writer;
     private FileWriter fileWriter;
     private Integer counter = 0;
@@ -50,7 +51,7 @@ public class CodeWriter {
     }
 
     public CodeWriter(String filePath) {
-
+        this.funcName = null;
         segments = new HashMap<>(6);
         segments.put("local", "LCL");
         segments.put("argument", "ARG");
@@ -222,6 +223,12 @@ public class CodeWriter {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void writeIf(String label) {
+        String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
+        String commandString = "@SP\r\nAM=M-1\r\nD=M\r\n@" + (func + label).toUpperCase() + "\r\nD;JNE\r\n";
+        writeTofile(commandString);
     }
 
     public void close() {
