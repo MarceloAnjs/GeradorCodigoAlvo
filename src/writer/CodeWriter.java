@@ -138,67 +138,6 @@ public class CodeWriter {
         writeTofile(commandString);
     }
 
-    public void writeEquality() {
-        writeComparison("JEQ");
-    }
-
-    public void writeLessThan() {
-        writeComparison("JLT");
-    }
-
-    public void writeGreaterThan() {
-        writeComparison("JGT");
-    }
-
-    public void writeAnd() {
-        writeLine(" @SP");
-        writeLine(" AM=M-1");
-        writeLine(" D=M");
-        writeLine(" A=A-1");
-        writeLine(" M=M&D");
-    }
-
-    public void writeOr() {
-        writeLine(" @SP");
-        writeLine(" AM=M-1");
-        writeLine(" D=M");
-        writeLine(" A=A-1");
-        writeLine(" M=M|D");
-    }
-
-    public void writeNot() {
-        writeLine(" @SP");
-        writeLine(" A=M-1");
-        writeLine(" M=!M");
-    }
-
-    private void writeComparison(String jumpType) {
-        int jumpIndex = getJumpIndex();
-        writeLine(" @SP");
-        writeLine(" AM=M-1");
-        writeLine(" D=M");
-        writeLine(" A=A-1");
-        writeLine(" D=M-D");
-        writeLine(" @TRUE" + jumpIndex);
-        writeLine(" D;" + jumpType);
-        writeLine(" @SP");
-        writeLine(" A=M-1");
-        writeLine(" M=0");
-        writeLine(" @CONTINUE" + jumpIndex);
-        writeLine(" 0;JMP");
-        writeLine("(TRUE" + jumpIndex + ")");
-        writeLine(" @SP");
-        writeLine(" A=M-1");
-        writeLine(" M=-1");
-        writeLine("(CONTINUE" + jumpIndex + ")");
-    }
-
-    private int jumpIndex = 0;
-
-    private int getJumpIndex() {
-        return jumpIndex++;
-    }
-
     private String push(String segment, String index) {
         String commandString = "@" + index + "\r\nD=A";
         if (segment.equals("static"))
@@ -231,15 +170,6 @@ public class CodeWriter {
         writeTofile(commandString);
     }
 
-    private void writeLine(String line) {
-        try {
-            writer.write(line);
-            writer.newLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     public void writeIf(String label) {
         String func = funcName != null ? fileName.replace("vm", label) + "." + funcName + "$" : "";
         String commandString = "@SP\r\nAM=M-1\r\nD=M\r\n@" + (func + label).toUpperCase() + "\r\nD;JNE\r\n";
@@ -258,5 +188,22 @@ public class CodeWriter {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String restoreSegmentPointers(int index, String segment) {
+        return "@" + index + "\nD=A\n@END_FRAME\r\nA=M-D\nD=M\r\n@" + segment + "\r\nM=D\r\n";
+    }
+
+    public void writeReturn() {
+        String string = "//return\n@LCL\r\nD=M\r\n@END_FRAME\r\nM=D\r\n";
+        string += "@5\r\nA=D-A\r\nD=M\n@RET\r\nM=D\r\n";
+        string += "@SP\r\nAM=M-1\r\nD=M\r\n@ARG\r\nA=M\r\nM=D\r\n";
+        string += "@ARG\r\nD=M\r\n@SP\r\nM=D+1\r\n";
+        string += restoreSegmentPointers(1, "THAT");
+        string += restoreSegmentPointers(2, "THIS");
+        string += restoreSegmentPointers(3, "ARG");
+        string += restoreSegmentPointers(4, "LCL");
+        string += "@RET\r\nA=M\r\n0;JMP\r\n";
+        writeTofile(string);
     }
 }
